@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PDF Toolkit — Free PDF Tools</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f5f7fb;color:#172033}
+header{background:#fff;border-bottom:1px solid #e7eaf0;padding:18px 16px;position:sticky;top:0;z-index:5}
+.wrap{max-width:980px;margin:auto}.brand{font-size:24px;font-weight:800}.sub{color:#687386;font-size:13px;margin-top:3px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin:22px 0}
+.tool{border:1px solid #e2e6ee;background:#fff;border-radius:16px;padding:18px;cursor:pointer;box-shadow:0 2px 8px #00000008}.tool:hover{transform:translateY(-1px);box-shadow:0 5px 16px #00000012}.icon{font-size:27px}.tool b{display:block;margin-top:8px}.tool span{font-size:12px;color:#6b7280}
+.panel{background:#fff;border:1px solid #e2e6ee;border-radius:18px;padding:20px;margin-bottom:30px}
+h2{margin:0 0 6px}.hint{color:#697386;font-size:13px}.drop{border:2px dashed #c8ced9;border-radius:16px;padding:30px;text-align:center;margin:18px 0;cursor:pointer}.drop.drag{background:#f0f5ff;border-color:#4778ff}
+input,select,button{font:inherit}input[type=file]{display:none}.controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}.controls input,.controls select{padding:10px;border:1px solid #d7dce5;border-radius:10px;background:#fff}button{border:0;border-radius:10px;padding:11px 16px;cursor:pointer;font-weight:700}.primary{background:#2563eb;color:#fff}.secondary{background:#eef2f7;color:#172033}.danger{background:#fee2e2;color:#991b1b}
+#pages{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:12px;margin-top:16px}.page{border:1px solid #e1e5ec;border-radius:12px;padding:8px;background:#fafbfc}.page canvas,.page img{width:100%;height:180px;object-fit:contain;background:#fff;border-radius:7px}.page small{display:block;text-align:center;margin:6px}.status{margin-top:12px;color:#4b5563;font-size:13px}.note{font-size:12px;color:#6b7280;line-height:1.5;margin-top:18px}
+footer{text-align:center;color:#7a8495;font-size:12px;padding:20px}
+@media(max-width:500px){.grid{grid-template-columns:repeat(2,1fr)}.panel{padding:15px}.drop{padding:22px 12px}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><div class="brand">📄 PDF Toolkit</div><div class="sub">Simple PDF tools — runs in your browser</div></div></header>
+<main class="wrap">
+<div class="grid">
+<div class="tool" onclick="choose('resize')"><div class="icon">📏</div><b>Resize PDF</b><span>Change page size</span></div>
+<div class="tool" onclick="choose('pdfjpg')"><div class="icon">🔄</div><b>PDF → JPG</b><span>Export pages as images</span></div>
+<div class="tool" onclick="choose('jpgpdf')"><div class="icon">🖼️</div><b>JPG → PDF</b><span>Create a PDF</span></div>
+<div class="tool" onclick="choose('compress')"><div class="icon">🗜️</div><b>Compress PDF</b><span>Reduce file size</span></div>
+<div class="tool" onclick="choose('merge')"><div class="icon">🔀</div><b>Merge PDFs</b><span>Combine files</span></div>
+<div class="tool" onclick="choose('split')"><div class="icon">✂️</div><b>Split PDF</b><span>Extract pages</span></div>
+<div class="tool" onclick="choose('rotate')"><div class="icon">🔄</div><b>Rotate PDF</b><span>Rotate pages</span></div>
+<div class="tool" onclick="choose('rearrange')"><div class="icon">📑</div><b>Rearrange</b><span>Change page order</span></div>
+<div class="tool" onclick="choose('upload')"><div class="icon">📤</div><b>Upload PDF</b><span>Start a tool</span></div>
+</div>
+
+<section class="panel" id="panel">
+<h2>Choose a PDF tool</h2><div class="hint">Select any tool above to begin.</div>
+</section>
+<div class="note">Privacy: this starter version processes files locally in your browser for the supported operations. Do not use a public website as a place to upload confidential documents unless you understand its hosting/privacy setup. Compression uses image-based recompression and may reduce text/vector quality.</div>
+</main>
+<footer>PDF Toolkit — starter version</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+let pdfjsLibReady=null;
+(async()=>{try{const m=await import("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs");m.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";pdfjsLibReady=m}catch(e){console.error(e)}})();
+const panel=document.getElementById('panel');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+function choose(tool){
+const titles={resize:'📏 Resize PDF',pdfjpg:'🔄 Convert PDF → JPG',jpgpdf:'🖼️ Convert JPG → PDF',compress:'🗜️ Compress PDF',merge:'🔀 Merge PDFs',split:'✂️ Split PDF',rotate:'🔄 Rotate PDF',rearrange:'📑 Rearrange pages',upload:'📤 Upload PDF'};
+let accept=tool==='jpgpdf'?'image/jpeg,image/png':'.pdf,application/pdf';
+panel.innerHTML=`<h2>${titles[tool]}</h2><div class="hint">Select your file(s) below.</div>
+<div class="drop" id="drop">Tap here to choose file${tool==='merge'?'s':''}<input id="files" type="file" accept="${accept}" ${tool==='merge'?'multiple':''}></div>
+<div id="options"></div><div id="pages"></div><div class="status" id="status"></div>`;
+const drop=document.getElementById('drop'), fi=document.getElementById('files');
+drop.onclick=()=>fi.click(); drop.ondragover=e=>{e.preventDefault();drop.classList.add('drag')};drop.ondragleave=()=>drop.classList.remove('drag');drop.ondrop=e=>{e.preventDefault();drop.classList.remove('drag');fi.files=e.dataTransfer.files;fi.dispatchEvent(new Event('change'))};
+fi.onchange=()=>loadTool(tool,fi.files);
+}
+function setStatus(t){document.getElementById('status').textContent=t}
+async function loadTool(tool,files){
+if(!files.length)return;
+const opt=document.getElementById('options');
+if(tool==='jpgpdf'){opt.innerHTML='<button class="primary" onclick="jpgToPdf()">Create PDF</button>';return}
+if(tool==='merge'){opt.innerHTML='<button class="primary" onclick="mergePdfs()">Merge & Download</button>';return}
+if(tool==='pdfjpg'){opt.innerHTML='<div class="controls"><label>Quality <select id="quality"><option value="1">High</option><option value=".75" selected>Medium</option><option value=".5">Low</option></select></label><button class="primary" onclick="pdfToJpg()">Convert</button></div>';return}
+if(tool==='compress'){opt.innerHTML='<div class="controls"><label>Quality <select id="cq"><option value=".8">High</option><option value=".6" selected>Medium</option><option value=".4">Small</option></select></label><button class="primary" onclick="compressPdf()">Compress & Download</button></div>';return}
+const data=await files[0].arrayBuffer(); window.currentBytes=data;
+const pdf=await PDFLib.PDFDocument.load(data); window.currentPdf=pdf;
+if(tool==='resize')opt.innerHTML='<div class="controls"><label>Page size <select id="size"><option value="a4">A4</option><option value="a5">A5</option><option value="letter">Letter</option><option value="legal">Legal</option></select></label><button class="primary" onclick="resizePdf()">Resize & Download</button></div>';
+if(tool==='rotate')opt.innerHTML='<div class="controls"><label>Degrees <select id="deg"><option>90</option><option>180</option><option>270</option></select></label><button class="primary" onclick="rotatePdf()">Rotate & Download</button></div>';
+if(tool==='split')opt.innerHTML='<div class="controls"><label>Pages (e.g. 1,3-5) <input id="range" placeholder="1,3-5"></label><button class="primary" onclick="splitPdf()">Extract & Download</button></div>';
+if(tool==='rearrange')opt.innerHTML='<div class="controls"><label>New order <input id="order" placeholder="3,1,2"></label><button class="primary" onclick="rearrangePdf()">Rearrange & Download</button></div>';
+setStatus(`Loaded ${files[0].name} — ${pdf.getPageCount()} page(s).`);
+}
+function download(bytes,name,type='application/pdf'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([bytes],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function parsePages(txt,max){let out=[];for(const part of txt.split(',')){if(part.includes('-')){let[a,b]=part.split('-').map(Number);for(let i=a;i<=b;i++)if(i>=1&&i<=max)out.push(i-1)}else{let n=Number(part);if(n>=1&&n<=max)out.push(n-1)}}return [...new Set(out)]}
+async function cloneSelected(indices,name){const src=window.currentPdf,out=await PDFLib.PDFDocument.create();const pages=await out.copyPages(src,indices);pages.forEach(p=>out.addPage(p));download(await out.save(),name)}
+async function splitPdf(){const idx=parsePages(document.getElementById('range').value,window.currentPdf.getPageCount());if(!idx.length)return alert('Enter valid page numbers.');await cloneSelected(idx,'split-pages.pdf')}
+async function rearrangePdf(){const idx=parsePages(document.getElementById('order').value,window.currentPdf.getPageCount());if(idx.length!==window.currentPdf.getPageCount())return alert('Enter every page exactly once, e.g. 3,1,2');await cloneSelected(idx,'rearranged.pdf')}
+async function rotatePdf(){const deg=Number(document.getElementById('deg').value);window.currentPdf.getPages().forEach(p=>p.setRotation(PDFLib.degrees(p.getRotation().angle+deg)));download(await window.currentPdf.save(),'rotated.pdf')}
+async function resizePdf(){const sizes={a4:[595.28,841.89],a5:[419.53,595.28],letter:[612,792],legal:[612,1008]};const [nw,nh]=sizes[document.getElementById('size').value];const src=window.currentPdf,out=await PDFLib.PDFDocument.create();for(const sp of src.getPages()){const [w,h]=sp.getSize(),scale=Math.min(nw/w,nh/h),p=out.addPage([nw,nh]);const emb=await out.embedPage(sp);p.drawPage(emb,{x:(nw-w*scale)/2,y:(nh-h*scale)/2,xScale:scale,yScale:scale})}download(await out.save(),'resized.pdf')}
+async function mergePdfs(){const fs=[...document.getElementById('files').files],out=await PDFLib.PDFDocument.create();for(const f of fs){const d=await PDFLib.PDFDocument.load(await f.arrayBuffer()),ps=await out.copyPages(d,d.getPageIndices());ps.forEach(p=>out.addPage(p))}download(await out.save(),'merged.pdf')}
+async function jpgToPdf(){const fs=[...document.getElementById('files').files];const {jsPDF}=window.jspdf;const doc=new jsPDF();for(let i=0;i<fs.length;i++){if(i)doc.addPage();const data=await fileDataURL(fs[i]);const img=await loadImg(data),pw=doc.internal.pageSize.getWidth(),ph=doc.internal.pageSize.getHeight(),scale=Math.min(pw/img.width,ph/img.height),w=img.width*scale,h=img.height*scale;doc.addImage(data,'JPEG',(pw-w)/2,(ph-h)/2,w,h)}doc.save('images.pdf')}
+function fileDataURL(f){return new Promise(r=>{const x=new FileReader();x.onload=()=>r(x.result);x.readAsDataURL(f)})}
+function loadImg(src){return new Promise((r,j)=>{const i=new Image();i.onload=()=>r(i);i.onerror=j;i.src=src})}
+async function getPdfPageCanvas(pdf,n,scale=1){if(!pdfjsLibReady)throw new Error('PDF renderer is still loading. Try again in a moment.');const p=await pdf.getPage(n),v=p.getViewport({scale});const c=document.createElement('canvas');c.width=v.width;c.height=v.height;await p.render({canvasContext:c.getContext('2d'),viewport:v}).promise;return c}
+async function pdfToJpg(){const bytes=window.currentBytes,pdf=await pdfjsLibReady.getDocument({data:bytes.slice(0)}).promise,q=Number(document.getElementById('quality').value);for(let n=1;n<=pdf.numPages;n++){const c=await getPdfPageCanvas(pdf,n,q);const url=c.toDataURL('image/jpeg',.9);download(await (await fetch(url)).blob(),`page-${n}.jpg`,'image/jpeg')}setStatus('Done. Each page was downloaded as a JPG.')}
+async function compressPdf(){const bytes=window.currentBytes,pdf=await pdfjsLibReady.getDocument({data:bytes.slice(0)}).promise,q=Number(document.getElementById('cq').value),out=await PDFLib.PDFDocument.create();for(let n=1;n<=pdf.numPages;n++){const c=await getPdfPageCanvas(pdf,n,1);const data=c.toDataURL('image/jpeg',q),img=await out.embedJpg(data),p=out.addPage([c.width,c.height]);p.drawImage(img,{x:0,y:0,width:c.width,height:c.height})}download(await out.save(),'compressed.pdf');setStatus('Done. Note: this compression rasterizes pages, so text may no longer be selectable.')}
+</script>
+</body>
+</html>
